@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Extraction - DCS Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pdf-viewer {
+            position: relative;
+            background: #0a0a0a;
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 600px;
+        }
+
+        .pdf-image {
+            max-width: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+
+        .selection-overlay {
+            position: absolute;
+            border: 2px dashed #4facfe;
+            background: rgba(79, 172, 254, 0.2);
+            pointer-events: none;
+            display: none;
+        }
+
+        .page-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .page-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .page-btn:hover {
+            background: rgba(79, 172, 254, 0.3);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            color: #8892b0;
+        }
+
+        .instructions {
+            background: rgba(79, 172, 254, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #8892b0;
+        }
+
+        .instructions strong {
+            color: #4facfe;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-block {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .extracted-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .instrument-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .instrument-tag {
+            font-weight: 600;
+            color: #4facfe;
+        }
+
+        .instrument-type {
+            font-size: 0.85rem;
+            color: #8892b0;
+        }
+
+        .confidence {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .confidence.high {
+            background: rgba(105, 240, 174, 0.2);
+            color: #69f0ae;
+        }
+
+        .confidence.medium {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .confidence.low {
+            background: rgba(255, 82, 82, 0.2);
+            color: #ff5252;
+        }
+
+        .remove-btn {
+            background: rgba(255, 82, 82, 0.2);
+            border: none;
+            color: #ff5252;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4facfe;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #8892b0;
+        }
+
+        .raw-text {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: #8892b0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(79, 172, 254, 0.2);
+            border-top-color: #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .flash {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .flash.error {
+            background: rgba(255, 82, 82, 0.2);
+            color: #ff5252;
+        }
+
+        .flash.success {
+            background: rgba(105, 240, 174, 0.2);
+            color: #69f0ae;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 PDF Instrument Extraction</h1>
+            <p style="color: #8892b0;">Extract instrument tags from P&ID or drawing PDFs</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="main-content">
+            <div class="card">
+                <h2>📋 PDF Preview</h2>
+
+                <div class="instructions">
+                    <strong>Instructions:</strong> Click twice on the PDF to select a region (first click = top-left corner, second click = bottom-right corner).
+                    Press <strong>Escape</strong> or <strong>right-click</strong> to cancel. Or click "Extract Full Page" to process the entire page.
+                </div>
+
+                <div class="page-controls">
+                    <button class="page-btn" id="prevPage" disabled>← Previous</button>
+                    <span class="page-info">Page <span id="currentPage">{{ page }}</span> of <span id="totalPages">{{ total_pages }}</span></span>
+                    <button class="page-btn" id="nextPage" {% if page >= total_pages %}disabled{% endif %}>Next →</button>
+                </div>
+
+                <div class="pdf-viewer" id="pdfViewer">
+                    <img src="/pdf-page/{{ filename }}/{{ page }}" alt="PDF Page" class="pdf-image" id="pdfImage">
+                    <div class="selection-overlay" id="selectionOverlay"></div>
+                </div>
+
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" id="extractFullPage">Extract Full Page</button>
+                    <button class="btn" id="extractSelection" disabled>Extract Selection</button>
+                    <button class="btn btn-secondary" onclick="window.location.href='/'">← Back to Home</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="card" style="margin-bottom: 20px;">
+                    <h2>🔍 Extracted Instruments</h2>
+
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>Extracting text with OCR...</p>
+                    </div>
+
+                    <div id="extractedContent">
+                        <div class="stats">
+                            <div class="stat">
+                                <div class="stat-value" id="instrumentCount">0</div>
+                                <div class="stat-label">Instruments</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="areaCount">0</div>
+                                <div class="stat-label">Areas</div>
+                            </div>
+                        </div>
+
+                        <div class="extracted-list" id="instrumentList">
+                            <p style="color: #8892b0; text-align: center; padding: 20px;">
+                                Select a region or click "Extract Full Page" to begin
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>⚙️ Actions</h2>
+                    <button class="btn btn-block" id="useExtracted" disabled>Use Extracted Instruments →</button>
+                    <button class="btn btn-secondary btn-block" id="showRawText">Show Raw OCR Text</button>
+
+                    <div id="rawTextSection" style="display: none; margin-top: 15px;">
+                        <h3 style="font-size: 0.9rem; margin-bottom: 10px;">Raw OCR Text:</h3>
+                        <div class="raw-text" id="rawText"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const filename = "{{ filename }}";
+        let currentPage = {{ page }};
+        const totalPages = {{ total_pages }};
+        let extractedInstruments = [];
+        let selectionStart = null;
+        let isSelecting = false;
+
+        const pdfViewer = document.getElementById('pdfViewer');
+        const pdfImage = document.getElementById('pdfImage');
+        const selectionOverlay = document.getElementById('selectionOverlay');
+        const extractSelectionBtn = document.getElementById('extractSelection');
+
+        // Click-based selection handling (2 clicks to form rectangle)
+        let clickCount = 0;
+        let firstClick = null;
+        let secondClick = null;
+
+        pdfImage.addEventListener('click', (e) => {
+            const rect = pdfImage.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            if (clickCount === 0) {
+                // First click - set starting corner
+                firstClick = { x: clickX, y: clickY };
+                clickCount = 1;
+
+                // Show a small indicator at first click point
+                selectionOverlay.style.display = 'block';
+                selectionOverlay.style.left = clickX + 'px';
+                selectionOverlay.style.top = clickY + 'px';
+                selectionOverlay.style.width = '10px';
+                selectionOverlay.style.height = '10px';
+                selectionOverlay.style.borderStyle = 'solid';
+
+                extractSelectionBtn.disabled = true;
+                extractSelectionBtn.textContent = 'Click second corner...';
+            } else {
+                // Second click - complete the rectangle
+                secondClick = { x: clickX, y: clickY };
+                clickCount = 0;
+
+                // Calculate rectangle dimensions
+                const left = Math.min(firstClick.x, secondClick.x);
+                const top = Math.min(firstClick.y, secondClick.y);
+                const width = Math.abs(secondClick.x - firstClick.x);
+                const height = Math.abs(secondClick.y - firstClick.y);
+
+                // Update overlay
+                selectionOverlay.style.left = left + 'px';
+                selectionOverlay.style.top = top + 'px';
+                selectionOverlay.style.width = width + 'px';
+                selectionOverlay.style.height = height + 'px';
+                selectionOverlay.style.borderStyle = 'dashed';
+
+                if (width > 20 && height > 20) {
+                    extractSelectionBtn.disabled = false;
+                    extractSelectionBtn.textContent = 'Extract Selection';
+                } else {
+                    extractSelectionBtn.textContent = 'Selection too small';
+                }
+
+                // Store for extraction
+                selectionStart = { x: left, y: top };
+                selectionEnd = { x: left + width, y: top + height };
+            }
+        });
+
+        // Show preview rectangle while moving mouse after first click
+        pdfImage.addEventListener('mousemove', (e) => {
+            if (clickCount !== 1) return;
+
+            const rect = pdfImage.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+
+            const left = Math.min(firstClick.x, currentX);
+            const top = Math.min(firstClick.y, currentY);
+            const width = Math.abs(currentX - firstClick.x);
+            const height = Math.abs(currentY - firstClick.y);
+
+            selectionOverlay.style.left = left + 'px';
+            selectionOverlay.style.top = top + 'px';
+            selectionOverlay.style.width = width + 'px';
+            selectionOverlay.style.height = height + 'px';
+        });
+
+        // Right-click or Escape to cancel selection
+        pdfImage.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            cancelSelection();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cancelSelection();
+            }
+        });
+
+        function cancelSelection() {
+            clickCount = 0;
+            firstClick = null;
+            secondClick = null;
+            selectionOverlay.style.display = 'none';
+            extractSelectionBtn.disabled = true;
+            extractSelectionBtn.textContent = 'Extract Selection';
+        }
+
+        let selectionEnd = null;
+
+        // Page navigation
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePage();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePage();
+            }
+        });
+
+        function updatePage() {
+            pdfImage.src = `/pdf-page/${filename}/${currentPage}`;
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            cancelSelection();
+        }
+
+        // Extraction
+        document.getElementById('extractFullPage').addEventListener('click', () => {
+            extractFromRegion(null);
+        });
+
+        extractSelectionBtn.addEventListener('click', () => {
+            const rect = pdfImage.getBoundingClientRect();
+            const overlay = selectionOverlay.getBoundingClientRect();
+
+            // Calculate region relative to image
+            const scaleX = pdfImage.naturalWidth / rect.width;
+            const scaleY = pdfImage.naturalHeight / rect.height;
+
+            const region = {
+                left: (overlay.left - rect.left) * scaleX,
+                top: (overlay.top - rect.top) * scaleY,
+                right: (overlay.right - rect.left) * scaleX,
+                bottom: (overlay.bottom - rect.top) * scaleY
+            };
+
+            extractFromRegion(region);
+        });
+
+        function extractFromRegion(region) {
+            document.getElementById('loading').classList.add('active');
+
+            const data = {
+                filename: filename,
+                page: currentPage,
+                region: region
+            };
+
+            fetch('/api/pdf-extract', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('loading').classList.remove('active');
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                extractedInstruments = data.instruments;
+                updateInstrumentList();
+                document.getElementById('rawText').textContent = data.raw_text;
+                document.getElementById('instrumentCount').textContent = data.instruments.length;
+
+                // Count unique areas
+                const areas = new Set(data.instruments.map(i => i.area));
+                document.getElementById('areaCount').textContent = areas.size;
+
+                document.getElementById('useExtracted').disabled = data.instruments.length === 0;
+            })
+            .catch(err => {
+                document.getElementById('loading').classList.remove('active');
+                alert('Extraction failed: ' + err.message);
+            });
+        }
+
+        function updateInstrumentList() {
+            const list = document.getElementById('instrumentList');
+
+            if (extractedInstruments.length === 0) {
+                list.innerHTML = '<p style="color: #8892b0; text-align: center; padding: 20px;">No instruments found</p>';
+                return;
+            }
+
+            list.innerHTML = extractedInstruments.map((inst, idx) => {
+                const confClass = inst.confidence >= 0.8 ? 'high' : inst.confidence >= 0.5 ? 'medium' : 'low';
+                return `
+                    <div class="instrument-item">
+                        <div>
+                            <div class="instrument-tag">${inst.tag_number}</div>
+                            <div class="instrument-type">${inst.instrument_type} • Area ${inst.area || 'N/A'}</div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span class="confidence ${confClass}">${Math.round(inst.confidence * 100)}%</span>
+                            <button class="remove-btn" onclick="removeInstrument(${idx})">✕</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function removeInstrument(idx) {
+            extractedInstruments.splice(idx, 1);
+            updateInstrumentList();
+            document.getElementById('instrumentCount').textContent = extractedInstruments.length;
+            document.getElementById('useExtracted').disabled = extractedInstruments.length === 0;
+        }
+
+        // Show/hide raw text
+        document.getElementById('showRawText').addEventListener('click', () => {
+            const section = document.getElementById('rawTextSection');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Use extracted instruments
+        document.getElementById('useExtracted').addEventListener('click', () => {
+            // Store in session and redirect to configure
+            fetch('/api/store-extracted', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instruments: extractedInstruments })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '/configure-extracted';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+junction_box:
+  max_terminals: 20
+  spare_percent: 0.20
+  terminal_naming:
+    signal_positive: "{n}+"
+    signal_negative: "{n}-"
+    shield: "{n}S"
+    overall_shield: "0S"
+
+marshalling_cabinet:
+  max_pairs_per_tb: 20
+  spare_percent: 0.20
+  terminal_naming:
+    pair: "PR{n}"
+    positive: "{n}+"
+    negative: "{n}-"
+    overall_shield: "0S"
+  wire_colors:
+    positive: "WH"
+    negative: "BK"

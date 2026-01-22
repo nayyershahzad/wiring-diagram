@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I/O Allocation Results - DCS Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        header { text-align: center; margin-bottom: 40px; }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #9c27b0 0%, #e91e63 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { color: #8892b0; font-size: 1rem; }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .summary-card .label {
+            color: #8892b0;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        .summary-instruments { background: rgba(79, 172, 254, 0.1); }
+        .summary-instruments .value { color: #4facfe; }
+        .summary-cards { background: rgba(105, 240, 174, 0.1); }
+        .summary-cards .value { color: #69f0ae; }
+        .summary-spare { background: rgba(255, 152, 0, 0.1); }
+        .summary-spare .value { color: #ff9800; }
+        .summary-rules { background: rgba(156, 39, 176, 0.1); }
+        .summary-rules .value { color: #9c27b0; }
+
+        /* System sections */
+        .system-section {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .system-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .system-dcs {
+            background: rgba(79, 172, 254, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+        }
+        .system-dcs h3 { color: #4facfe; }
+        .system-sis {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+        .system-sis h3 { color: #ff9800; }
+        .system-rtu {
+            background: rgba(156, 39, 176, 0.1);
+            border: 1px solid rgba(156, 39, 176, 0.3);
+        }
+        .system-rtu h3 { color: #9c27b0; }
+
+        /* Allocation table */
+        .allocation-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .allocation-table th, .allocation-table td {
+            padding: 12px 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        .allocation-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+        }
+        .allocation-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Editable cells */
+        .editable {
+            background: rgba(105, 240, 174, 0.15);
+            cursor: text;
+            min-width: 60px;
+        }
+        .editable:focus {
+            outline: 2px solid #69f0ae;
+            background: rgba(105, 240, 174, 0.25);
+        }
+
+        /* Segregation rules */
+        .rules-list {
+            list-style: none;
+            color: #8892b0;
+        }
+        .rules-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .rules-list li::before {
+            content: "✓";
+            color: #69f0ae;
+            font-weight: bold;
+        }
+
+        /* Action buttons */
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-block;
+            padding: 14px 30px;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #9c27b0 0%, #e91e63 100%);
+        }
+        .btn-primary:hover { box-shadow: 0 10px 30px rgba(156, 39, 176, 0.3); }
+        .btn-export {
+            background: linear-gradient(90deg, #69f0ae 0%, #00e676 100%);
+            color: #1a1a2e;
+        }
+        .btn-export:hover { box-shadow: 0 10px 30px rgba(105, 240, 174, 0.3); }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #8892b0;
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .allocation-table { font-size: 0.8rem; }
+            .allocation-table th, .allocation-table td { padding: 8px 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>I/O Card Allocation Results</h1>
+            <p class="subtitle">
+                {{ vendor }} - Calculated with {{ custom_rules_info.spare_percent|default(20)|int }}% spare capacity
+                {% if custom_rules_info %}
+                <span style="background: linear-gradient(90deg, #9c27b0 0%, #e91e63 100%); padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-left: 10px;">AI RULES APPLIED</span>
+                {% endif %}
+            </p>
+        </header>
+
+        {% if custom_rules_info %}
+        <!-- AI Rules Interpretation -->
+        <div class="card" style="border: 1px solid rgba(156, 39, 176, 0.3); background: rgba(156, 39, 176, 0.05);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <h2 style="margin: 0;">AI-Interpreted Rules</h2>
+                <span style="background: linear-gradient(90deg, #9c27b0 0%, #e91e63 100%); padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">CLAUDE AI</span>
+            </div>
+            <p style="color: #ce93d8; font-size: 0.95rem; margin-bottom: 15px; line-height: 1.6;">
+                {{ custom_rules_info.interpretation }}
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <span style="padding: 5px 12px; background: rgba(105, 240, 174, 0.15); border-radius: 20px; font-size: 0.8rem; color: #69f0ae;">
+                    Spare: {{ custom_rules_info.spare_percent|int }}%
+                </span>
+                {% if custom_rules_info.segregate_by_area %}
+                <span style="padding: 5px 12px; background: rgba(79, 172, 254, 0.15); border-radius: 20px; font-size: 0.8rem; color: #4facfe;">
+                    Segregate by Area
+                </span>
+                {% endif %}
+                {% if custom_rules_info.max_cabinets_per_area %}
+                <span style="padding: 5px 12px; background: rgba(255, 152, 0, 0.15); border-radius: 20px; font-size: 0.8rem; color: #ff9800;">
+                    Max {{ custom_rules_info.max_cabinets_per_area }} cabinets/area
+                </span>
+                {% endif %}
+                {% if custom_rules_info.group_by_loop %}
+                <span style="padding: 5px 12px; background: rgba(156, 39, 176, 0.15); border-radius: 20px; font-size: 0.8rem; color: #ce93d8;">
+                    Group by Loop
+                </span>
+                {% endif %}
+                {% for rule in custom_rules_info.rules %}
+                <span style="padding: 5px 12px; background: rgba(255, 255, 255, 0.1); border-radius: 20px; font-size: 0.8rem; color: #8892b0;">
+                    {{ rule }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Summary Cards -->
+        <div class="card">
+            <h2>Allocation Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card summary-instruments">
+                    <div class="value">{{ total_instruments }}</div>
+                    <div class="label">Total Instruments</div>
+                </div>
+                <div class="summary-card summary-cards">
+                    <div class="value">{{ total_cards }}</div>
+                    <div class="label">Total I/O Cards</div>
+                </div>
+                <div class="summary-card summary-spare">
+                    <div class="value">20%</div>
+                    <div class="label">Spare Capacity</div>
+                </div>
+                <div class="summary-card summary-rules">
+                    <div class="value">{{ segregation_count }}</div>
+                    <div class="label">Segregation Rules</div>
+                </div>
+            </div>
+
+            <!-- DCS Section -->
+            {% if dcs_allocation %}
+            <div class="system-section system-dcs">
+                <h3>DCS (CENTUM VP)</h3>
+                <table class="allocation-table">
+                    <thead>
+                        <tr>
+                            <th>I/O Type</th>
+                            <th>Signals</th>
+                            <th>With Spare</th>
+                            <th>Module</th>
+                            <th>Ch/Card</th>
+                            <th>Cards</th>
+                            <th>Spare %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in dcs_allocation %}
+                        <tr>
+                            <td>{{ row.io_type }}</td>
+                            <td>{{ row.signal_count }}</td>
+                            <td>{{ row.channels_needed }}</td>
+                            <td>{{ row.module_model }}</td>
+                            <td>{{ row.channels_per_card }}</td>
+                            <td class="editable" contenteditable="true" data-system="DCS" data-type="{{ row.io_type }}">{{ row.cards_required }}</td>
+                            <td>{{ row.spare_percent }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- SIS Section -->
+            {% if sis_allocation %}
+            <div class="system-section system-sis">
+                <h3>SIS (ProSafe-RS)</h3>
+                <table class="allocation-table">
+                    <thead>
+                        <tr>
+                            <th>I/O Type</th>
+                            <th>Signals</th>
+                            <th>With Spare</th>
+                            <th>Module</th>
+                            <th>Ch/Card</th>
+                            <th>Cards</th>
+                            <th>Spare %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in sis_allocation %}
+                        <tr>
+                            <td>{{ row.io_type }}</td>
+                            <td>{{ row.signal_count }}</td>
+                            <td>{{ row.channels_needed }}</td>
+                            <td>{{ row.module_model }}</td>
+                            <td>{{ row.channels_per_card }}</td>
+                            <td class="editable" contenteditable="true" data-system="SIS" data-type="{{ row.io_type }}">{{ row.cards_required }}</td>
+                            <td>{{ row.spare_percent }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- RTU Section -->
+            {% if rtu_allocation %}
+            <div class="system-section system-rtu">
+                <h3>RTU (STARDOM)</h3>
+                <table class="allocation-table">
+                    <thead>
+                        <tr>
+                            <th>I/O Type</th>
+                            <th>Signals</th>
+                            <th>With Spare</th>
+                            <th>Module</th>
+                            <th>Ch/Card</th>
+                            <th>Cards</th>
+                            <th>Spare %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rtu_allocation %}
+                        <tr>
+                            <td>{{ row.io_type }}</td>
+                            <td>{{ row.signal_count }}</td>
+                            <td>{{ row.channels_needed }}</td>
+                            <td>{{ row.module_model }}</td>
+                            <td>{{ row.channels_per_card }}</td>
+                            <td class="editable" contenteditable="true" data-system="RTU" data-type="{{ row.io_type }}">{{ row.cards_required }}</td>
+                            <td>{{ row.spare_percent }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if not dcs_allocation and not sis_allocation and not rtu_allocation %}
+            <div class="empty-state">
+                <p>No I/O allocation data available.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Detailed Channel Assignments -->
+        {% if channel_details %}
+        <div class="card">
+            <h2>Detailed Channel Assignments</h2>
+            <p style="color: #8892b0; margin-bottom: 20px;">Channel-by-channel instrument assignments for each I/O card</p>
+
+            {% for system_name, system_cards in channel_details.items() %}
+            {% if system_cards %}
+            <div class="system-section system-{{ system_name|lower }}" style="margin-bottom: 20px;">
+                <h3>{{ system_name }} Channel Assignments</h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; margin-top: 15px;">
+                {% for card in system_cards %}
+                <div class="channel-card" style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="font-weight: 600; color: #4facfe;">{{ card.module }}</span>
+                        <span style="font-size: 0.85rem; color: #8892b0;">Card #{{ card.card_number }}</span>
+                    </div>
+                    <div style="font-size: 0.8rem;">
+                        {% for ch in card.channels %}
+                        <div style="display: flex; justify-content: space-between; padding: 4px 8px; margin: 2px 0; border-radius: 4px; background: {% if ch.status == 'SPARE' %}rgba(255,152,0,0.15){% else %}rgba(105,240,174,0.1){% endif %};">
+                            <span style="color: #8892b0; min-width: 45px;">CH{{ ch.number }}</span>
+                            <span style="flex: 1; margin-left: 10px; {% if ch.status == 'SPARE' %}color: #ff9800; font-style: italic;{% else %}color: #fff;{% endif %}">{{ ch.tag }}</span>
+                            {% if ch.type and ch.status != 'SPARE' %}
+                            <span style="color: #69f0ae; font-size: 0.75rem; margin-left: 5px;">({{ ch.type }})</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #8892b0;">
+                        Used: {{ card.used }}/{{ card.total }} | Spare: {{ card.spare }} ({{ card.spare_pct }}%)
+                    </div>
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Segregation Rules -->
+        <div class="card">
+            <h2>Segregation Rules Applied</h2>
+            <ul class="rules-list">
+                {% if segregation_rules %}
+                    {% for rule in segregation_rules %}
+                    <li>{{ rule }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>DCS and SIS on separate systems/controllers</li>
+                    <li>Analog and Digital signals on separate cards</li>
+                    <li>Different SIL levels on separate cards</li>
+                    <li>SIL-rated modules used for SIS</li>
+                    <li>20% spare capacity applied at channel level</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <a href="/io-allocation" class="btn btn-secondary">← New Calculation</a>
+            <button class="btn btn-export" onclick="exportToExcel()">Export to Excel</button>
+            <button class="btn btn-primary" onclick="generatePDF()">Generate PDF Report</button>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = '{{ session_id }}';
+
+        // Export allocation to Excel
+        function exportToExcel() {
+            fetch('/api/io-allocation/export', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({session_id: sessionId})
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Export failed');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'io_allocation.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert('Error exporting: ' + error.message);
+            });
+        }
+
+        // Generate PDF report
+        function generatePDF() {
+            const edits = collectEdits();
+
+            fetch('/api/io-allocation/generate-pdf', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    edits: edits
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('PDF generation failed');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            })
+            .catch(error => {
+                alert('Error generating PDF: ' + error.message);
+            });
+        }
+
+        // Collect edits from editable cells
+        function collectEdits() {
+            const edits = [];
+            document.querySelectorAll('.editable').forEach(cell => {
+                edits.push({
+                    system: cell.dataset.system,
+                    io_type: cell.dataset.type,
+                    cards: parseInt(cell.textContent) || 0
+                });
+            });
+            return edits;
+        }
+
+        // Highlight edited cells
+        document.querySelectorAll('.editable').forEach(cell => {
+            const originalValue = cell.textContent;
+            cell.addEventListener('input', () => {
+                if (cell.textContent !== originalValue) {
+                    cell.style.background = 'rgba(255, 152, 0, 0.3)';
+                } else {
+                    cell.style.background = 'rgba(105, 240, 174, 0.15)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

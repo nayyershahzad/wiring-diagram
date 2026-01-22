@@ -1,0 +1,34 @@
+branch_cables:
+  ANALOG_INPUT:
+    specification: "1Px1.5mm2"
+    pair_count: 1
+    description: "Single pair, 1.5mm² for 4-20mA signals"
+  ANALOG_OUTPUT:
+    specification: "1Px1.5mm2"
+    pair_count: 1
+    description: "Single pair, 1.5mm² for 4-20mA signals"
+  DIGITAL_INPUT:
+    specification: "1Px1.5mm2"
+    pair_count: 1
+    description: "Single pair, 1.5mm² for 24VDC signals"
+  DIGITAL_OUTPUT:
+    specification: "1Px1.5mm2"
+    pair_count: 1
+    description: "Single pair, 1.5mm² for 24VDC signals"
+  THERMOCOUPLE:
+    specification: "1Px1.5mm2"
+    pair_count: 1
+    description: "Thermocouple compensating cable"
+  RTD_3WIRE:
+    specification: "3Cx1.5mm2"
+    pair_count: 1
+    description: "3-wire RTD cable"
+  RTD_4WIRE:
+    specification: "2Px1.5mm2"
+    pair_count: 2
+    description: "4-wire RTD cable"
+
+multipair_cables:
+  sizes: [5, 10, 20]
+  specification_template: "{size}PRx1.0mm2"
+  spare_percent: 0.20

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure Diagram - DCS Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #8892b0;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: rgba(79, 172, 254, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4facfe;
+        }
+
+        .stat-label {
+            color: #8892b0;
+            font-size: 0.85rem;
+        }
+
+        .area-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .area-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .area-badge span {
+            color: #4facfe;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccd6f6;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        select option {
+            background: #1a1a2e;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 40px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: none;
+            transform: none;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+        }
+
+        .hint {
+            color: #8892b0;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .suggestions {
+            background: rgba(105, 240, 174, 0.1);
+            border: 1px solid rgba(105, 240, 174, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .suggestions h4 {
+            color: #69f0ae;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .suggestions p {
+            color: #8892b0;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Configure Diagram</h1>
+            <p class="subtitle">Set up your interconnection diagram parameters</p>
+        </header>
+
+        <div class="card">
+            <h2>📊 I/O List Summary</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">{{ total_instruments }}</div>
+                    <div class="stat-label">Total Instruments</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">{{ areas|length }}</div>
+                    <div class="stat-label">Areas</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">{{ suggestions.analog_jbs + suggestions.digital_jbs }}</div>
+                    <div class="stat-label">Suggested JBs</div>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 10px; font-size: 1rem;">Instruments by Area:</h3>
+            <div class="area-list">
+                {% for area, count in areas.items() %}
+                <div class="area-badge">Area {{ area }}: <span>{{ count }}</span> instruments</div>
+                {% endfor %}
+            </div>
+
+            <div class="suggestions">
+                <h4>💡 Signal Segregation</h4>
+                <p>
+                    <strong>Industry Best Practice:</strong> Analog and Digital signals must be routed through separate Junction Boxes
+                    to prevent electromagnetic interference and ensure signal integrity.
+                </p>
+            </div>
+
+            {% if allocation_info %}
+            <!-- Analog JB Section -->
+            {% if allocation_info.analog %}
+            <div class="allocation-plan" style="background: rgba(79, 172, 254, 0.1); border: 1px solid rgba(79, 172, 254, 0.3); border-radius: 10px; padding: 15px; margin-top: 20px;">
+                <h4 style="color: #4facfe; margin-bottom: 10px; font-size: 0.95rem;">📋 Analog JB Allocation (IAJB)</h4>
+                <p style="color: #8892b0; font-size: 0.8rem; margin-bottom: 10px;">
+                    Cable: Individually Shielded Twisted Pair (ISTP), 1.5mm² for 4-20mA signals
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #4facfe;">{{ allocation_info.analog.count }}</div>
+                        <div style="color: #8892b0; font-size: 0.8rem;">Analog Instruments</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #69f0ae;">{{ allocation_info.analog.num_jbs }}</div>
+                        <div style="color: #8892b0; font-size: 0.8rem;">Analog JBs Required</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #ffd54f;">{{ allocation_info.analog.effective_capacity }}</div>
+                        <div style="color: #8892b0; font-size: 0.8rem;">Capacity/JB (20% spare)</div>
+                    </div>
+                </div>
+                <p style="color: #8892b0; font-size: 0.85rem;">
+                    <strong style="color: #ccd6f6;">Signal Types:</strong>
+                    {% for type in allocation_info.analog.types %}{{ type }}{% if not loop.last %}, {% endif %}{% endfor %}
+                </p>
+                {% if allocation_info.analog.num_jbs > 1 %}
+                <p style="color: #ffd54f; font-size: 0.85rem; margin-top: 8px;">
+                    ⚠️ {{ allocation_info.analog.num_jbs }} Analog JBs will be generated (e.g., PP01-601-IAJB0001A, IAJB0001B...)
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Digital JB Section -->
+            {% if allocation_info.digital %}
+            <div class="allocation-plan" style="background: rgba(255, 152, 0, 0.1); border: 1px solid rgba(255, 152, 0, 0.3); border-radius: 10px; padding: 15px; margin-top: 20px;">
+                <h4 style="color: #ff9800; margin-bottom: 10px; font-size: 0.95rem;">📋 Digital JB Allocation (IDJB)</h4>
+                <p style="color: #8892b0; font-size: 0.8rem; margin-bottom: 10px;">
+                    Cable: Overall Shielded (OS), 1.0mm² for 24VDC discrete signals
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #ff9800;">{{ allocation_info.digital.count }}</div>
+                        <div style="color: #8892b0; font-size: 0.8rem;">Digital Instruments</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #69f0ae;">{{ allocation_info.digital.num_jbs }}</div>
+                        <div style="color: #8892b0; font-size: 0.8rem;">Digital JBs Required</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #ffd54f;">{{ allocation_info.digital.effective_capacity }}</div>
+                        <div style="color: #8892b0; font-size: 0.8rem;">Capacity/JB (20% spare)</div>
+                    </div>
+                </div>
+                <p style="color: #8892b0; font-size: 0.85rem;">
+                    <strong style="color: #ccd6f6;">Signal Types:</strong>
+                    {% for type in allocation_info.digital.types %}{{ type }}{% if not loop.last %}, {% endif %}{% endfor %}
+                </p>
+                {% if allocation_info.digital.num_jbs > 1 %}
+                <p style="color: #ffd54f; font-size: 0.85rem; margin-top: 8px;">
+                    ⚠️ {{ allocation_info.digital.num_jbs }} Digital JBs will be generated (e.g., PP01-601-IDJB0001A, IDJB0001B...)
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Total Summary -->
+            <div style="background: rgba(105, 240, 174, 0.1); border: 1px solid rgba(105, 240, 174, 0.3); border-radius: 10px; padding: 15px; margin-top: 20px;">
+                <h4 style="color: #69f0ae; margin-bottom: 10px; font-size: 0.95rem;">📊 Total JB Summary</h4>
+                <p style="color: #ccd6f6; font-size: 0.9rem;">
+                    Total JBs Required: <strong>{{ (allocation_info.analog.num_jbs if allocation_info.analog else 0) + (allocation_info.digital.num_jbs if allocation_info.digital else 0) }}</strong>
+                    ({{ allocation_info.analog.num_jbs if allocation_info.analog else 0 }} Analog + {{ allocation_info.digital.num_jbs if allocation_info.digital else 0 }} Digital)
+                </p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2>⚙️ Diagram Configuration</h2>
+            <form action="{% if from_pdf %}/generate-from-extracted{% else %}/generate{% endif %}" method="post">
+                <input type="hidden" name="filename" value="{{ filename }}">
+
+                <div class="form-group">
+                    <label for="area">Select Area</label>
+                    <select name="area" id="area">
+                        <option value="all">All Areas ({{ total_instruments }} instruments)</option>
+                        {% for area, count in areas.items() %}
+                        <option value="{{ area }}">Area {{ area }} ({{ count }} instruments)</option>
+                        {% endfor %}
+                    </select>
+                    <p class="hint">Select an area to filter instruments, or choose "All Areas"</p>
+                </div>
+
+                <!-- Analog JB Configuration -->
+                {% if allocation_info and allocation_info.analog %}
+                <div style="background: rgba(79, 172, 254, 0.05); border: 1px solid rgba(79, 172, 254, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <h3 style="color: #4facfe; font-size: 1rem; margin-bottom: 15px;">🔷 Analog JB Configuration</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="analog_jb_tag">Analog Junction Box Tag *</label>
+                            <input type="text" name="analog_jb_tag" id="analog_jb_tag" placeholder="e.g., PP01-601-IAJB0001" required>
+                            <p class="hint">Format: PP01-601-IAJB00XX (for 4-20mA signals)</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="analog_cabinet_tag">Analog Cabinet Tag *</label>
+                            <input type="text" name="analog_cabinet_tag" id="analog_cabinet_tag" placeholder="e.g., PP01-601-ICP001" required>
+                            <p class="hint">Marshalling cabinet for analog signals</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Digital JB Configuration -->
+                {% if allocation_info and allocation_info.digital %}
+                <div style="background: rgba(255, 152, 0, 0.05); border: 1px solid rgba(255, 152, 0, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <h3 style="color: #ff9800; font-size: 1rem; margin-bottom: 15px;">🔶 Digital JB Configuration</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="digital_jb_tag">Digital Junction Box Tag *</label>
+                            <input type="text" name="digital_jb_tag" id="digital_jb_tag" placeholder="e.g., PP01-601-IDJB0001" required>
+                            <p class="hint">Format: PP01-601-IDJB00XX (for 24VDC signals)</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="digital_cabinet_tag">Digital Cabinet Tag *</label>
+                            <input type="text" name="digital_cabinet_tag" id="digital_cabinet_tag" placeholder="e.g., PP01-601-ICP002" required>
+                            <p class="hint">Marshalling cabinet for digital signals</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Fallback for single type only -->
+                {% if not allocation_info or (not allocation_info.analog and not allocation_info.digital) %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="jb_tag">Junction Box Tag *</label>
+                        <input type="text" name="jb_tag" id="jb_tag" placeholder="e.g., PP01-601-IAJB0001" required>
+                        <p class="hint">Format: PP01-601-IAJB00XX (Analog) or PP01-601-IDJB00XX (Digital)</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="cabinet_tag">Marshalling Cabinet Tag *</label>
+                        <input type="text" name="cabinet_tag" id="cabinet_tag" placeholder="e.g., PP01-601-ICP001" required>
+                        <p class="hint">Format: PP01-601-ICP00X</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="drawing_number">Drawing Number</label>
+                    <input type="text" name="drawing_number" id="drawing_number" placeholder="e.g., 100478CP-N-PG-PP01-IC-DIC-0004-001" value="100478CP-N-PG-PP01-IC-DIC-0004-001">
+                    <p class="hint">Optional: Custom drawing number for the title block</p>
+                </div>
+
+                <div class="actions">
+                    <a href="/" class="btn btn-secondary">← Back</a>
+                    <button type="submit" class="btn">Generate PDF 📄</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Auto-suggest JB tag based on area selection
+        document.getElementById('area').addEventListener('change', function() {
+            const area = this.value;
+            const jbInput = document.getElementById('jb_tag');
+
+            if (area !== 'all' && !jbInput.value) {
+                // Suggest a tag based on area
+                jbInput.placeholder = `e.g., PP01-601-IAJB0001 (for area ${area})`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+page:
+  size: A3
+  width_mm: 420
+  height_mm: 297
+  orientation: landscape
+
+margins:
+  left_mm: 20
+  right_mm: 10
+  top_mm: 10
+  bottom_mm: 10
+
+title_block:
+  height_mm: 45
+  company: "CHINA PETROLEUM ENGINEERING & CONSTRUCTION CORP."
+  project: "EARLY POWER PLANT\nRUMAILA OIL FIELD"
+  contract: "100478"
+
+zones:
+  zone1_instrument:
+    x_start_percent: 0.02
+    width_percent: 0.15
+    header: "EPP-FIELD\nINSTRUMENT"
+  zone2_junction_box:
+    x_start_percent: 0.17
+    width_percent: 0.25
+    header: "JUNCTION BOX"
+  zone3_multipair:
+    x_start_percent: 0.42
+    width_percent: 0.13
+    header: "MULTIPAIR"
+  zone4_cabinet:
+    x_start_percent: 0.55
+    width_percent: 0.30
+    header: "DCS (EPP) CCR\nMARSHALLING CABINET"
+  zone5_notes:
+    x_start_percent: 0.85
+    width_percent: 0.15
+    header: "NOTES:"
+
+fonts:
+  primary: "Arial"
+  size_title: 12
+  size_normal: 8
+  size_small: 6
+
+colors:
+  line: "#000000"
+  text: "#000000"
+  background: "#FFFFFF"
+
+line_weights:
+  thin: 0.25
+  normal: 0.5
+  thick: 1.0
+  border: 0.7
+
+instruments_per_page: 12
